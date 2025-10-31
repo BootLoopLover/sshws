@@ -1,68 +1,26 @@
 <%+header%>
 <style>
-  .sshws-section {
-    background: #1a1a1f;
-    padding: 20px;
-    border-radius: 12px;
-    color: #eee;
-    max-width: 700px;
-  }
-  .sshws-section h2 {
-    color: #00e0c7;
-    margin-bottom: 15px;
-  }
-  .sshws-field {
-    margin-bottom: 12px;
-  }
-  .sshws-label {
-    font-weight: 600;
-    display: block;
-    margin-bottom: 4px;
-  }
+  .sshws-section { background: #1a1a1f; padding: 20px; border-radius: 12px; color: #eee; }
+  .sshws-section h2 { color: #00e0c7; }
+  .sshws-field { margin-bottom: 12px; }
+  .sshws-label { font-weight: 600; display: block; margin-bottom: 4px; }
   input[type=text], input[type=number], input[type=password], textarea {
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #333;
-    background: #222;
-    color: #fff;
+    width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #222; color: #fff;
   }
-  textarea {
-    resize: vertical;
-  }
-  .btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-right: 6px;
-    font-weight: 600;
-  }
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-right: 6px; }
   .btn-save { background: #00c4a7; color: white; }
   .btn-reload { background: #0077cc; color: white; }
   .btn-start { background: #28a745; color: white; }
   .btn-stop { background: #dc3545; color: white; }
-  .btn:hover { opacity: 0.9; }
-  .message {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 6px;
-    background: #222;
-    color: #0f0;
-    border-left: 4px solid #00c4a7;
-  }
-  .message.error { color: #ff4444; border-left-color: #ff4444; }
+  .btn:hover { opacity: 0.85; }
+  .message { margin-bottom: 15px; padding: 10px; border-radius: 6px; background: #222; color: #0f0; }
 </style>
 
 <div class="sshws-section">
-  <h2>SSHWS Tunnel by STRX</h2>
+  <h2>SSHWS by STRX</h2>
 
   <% if message then %>
-    <% local msg = tostring(message) %>
-    <% local err = msg:match("fail") or msg:match("gagal") or msg:match("🔴") %>
-    <div class="message <%= err and 'error' or '' %>">
-      <%= message %>
-    </div>
+    <div class="message"><%=message%></div>
   <% end %>
 
   <form method="post" action="<%=url('admin/services/sshws')%>">
@@ -78,22 +36,18 @@
 
     <fieldset class="sshws-field">
       <legend><b>SSH Configuration</b></legend>
-
       <div class="sshws-field">
         <span class="sshws-label">Host</span>
         <input type="text" name="ssh_host" value="<%=cfg.ssh and cfg.ssh.host or ''%>">
       </div>
-
       <div class="sshws-field">
         <span class="sshws-label">Port</span>
-        <input type="number" name="ssh_port" value="<%=cfg.ssh and cfg.ssh.port or '22'%>">
+        <input type="number" name="ssh_port" value="<%=cfg.ssh and cfg.ssh.port or ''%>">
       </div>
-
       <div class="sshws-field">
         <span class="sshws-label">Username</span>
-        <input type="text" name="ssh_username" value="<%=cfg.ssh and cfg.ssh.username or ''%>">
+        <input type="password" name="ssh_username" value="<%=cfg.ssh and cfg.ssh.username or ''%>">
       </div>
-
       <div class="sshws-field">
         <span class="sshws-label">Password</span>
         <input type="password" name="ssh_password" value="<%=cfg.ssh and cfg.ssh.password or ''%>">
@@ -106,15 +60,15 @@
     </div>
 
     <div class="sshws-field">
-      <span class="sshws-label">Connection Timeout (seconds)</span>
-      <input type="number" name="connectionTimeout" value="<%=cfg.connectionTimeout or '30'%>">
+      <span class="sshws-label">Connection Timeout</span>
+      <input type="number" name="connectionTimeout" value="<%=cfg.connectionTimeout or ''%>">
     </div>
 
     <div style="margin-top:20px;">
-      <button class="btn btn-reload" name="action" value="reload">🔁 Reload Config</button>
-      <button class="btn btn-save" name="action" value="save">💾 Save</button>
-      <button class="btn btn-start" name="action" value="start">▶️ Start</button>
-      <button class="btn btn-stop" name="action" value="stop">⛔ Stop</button>
+      <button class="btn btn-reload" name="action" value="reload">Load Current Config</button>
+      <button class="btn btn-save" name="action" value="save">Save</button>
+      <button class="btn btn-start" name="action" value="start">▶️</button>
+      <button class="btn btn-stop" name="action" value="stop">Stop</button>
     </div>
   </form>
 </div>

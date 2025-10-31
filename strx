@@ -4,7 +4,8 @@
 
 echo "======================================="
 echo " Welcome to Simple SSHWS Installer "
-echo " Luci-ed by @Raducksijaa"
+echo " Lucied by @Raducksijaa"
+echo " Tested by Paka"
 echo "======================================="
 
 echo "[1/5] Downloading SSHWS files..."

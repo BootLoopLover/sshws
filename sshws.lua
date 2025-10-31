@@ -1,4 +1,4 @@
-module("luci.controller.sshws", package.seeall)
+module("luci.controller.run", package.seeall)
 
 function index()
     -- Daftarkan entri menu di bawah 'Services'
@@ -32,7 +32,7 @@ function action_sshws()
     -- Mengendalikan tindakan butang
     if http.formvalue("action") == "reload" then
         -- Muat semula halaman
-        http.redirect(luci.dispatcher.build_url("admin/services/sshws"))
+        http.redirect(luci.dispatcher.build_url("admin/services/run"))
         return
         
     elseif http.formvalue("action") == "save" then
@@ -66,12 +66,12 @@ function action_sshws()
         
     elseif http.formvalue("action") == "start" then
         -- Mulakan/Restart perkhidmatan sshws
-        sys.call("/etc/init.d/sshws restart >/dev/null 2>&1 &")
+        sys.call("/etc/init.d/run restart >/dev/null 2>&1 &")
         message = "🟢 SSHWS dimulakan"
         
     elseif http.formvalue("action") == "stop" then
         -- Hentikan perkhidmatan sshws
-        sys.call("/etc/init.d/sshws stop >/dev/null 2>&1 &")
+        sys.call("/etc/init.d/run stop >/dev/null 2>&1 &")
         message = "🔴 SSHWS dihentikan"
     end
 

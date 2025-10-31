@@ -1,4 +1,4 @@
-module("luci.controller.sshws", package.seeall)
+module("luci.controller.run", package.seeall)
 
 function index()
     -- Daftarkan entri menu di bawah 'Services'
@@ -10,76 +10,71 @@ function action_sshws()
     local json = require "luci.jsonc"
     local sys = require "luci.sys"
     local http = require "luci.http"
-    local socket = require "nixio.socket"
 
     local config_path = "/root/config.json"
     local cfg = {}
     local message = nil
 
-    -- Baca konfigurasi semasa
+    -- Baca konfigurasi semasa dari config.json
     if fs.access(config_path) then
         local content = fs.readfile(config_path)
         if content and content ~= "" then
+            -- Cuba parse JSON. Guna jsonc.parse yang lebih toleran jika ada komen.
             cfg = json.parse(content) or {}
         end
     end
-
+    
+    -- Pastikan struktur SSH wujud untuk mengelakkan ralat jika cfg kosong
     if not cfg.ssh then
         cfg.ssh = {}
     end
 
-    local action = http.formvalue("action")
-
-    if action == "reload" then
+    -- Mengendalikan tindakan butang
+    if http.formvalue("action") == "reload" then
+        -- Muat semula halaman
         http.redirect(luci.dispatcher.build_url("admin/services/run"))
         return
-
-    elseif action == "save" then
+        
+    elseif http.formvalue("action") == "save" then
+        -- Update JSON fields dari form (borang)
         local newcfg = {
             mode = http.formvalue("mode") or "proxy",
             proxyHost = http.formvalue("proxyHost") or "",
-            proxyPort = http.formvalue("proxyPort") or "80",
+            
+            -- PENTING: Kekalkan proxyPort sebagai STRING ("80")
+            proxyPort = http.formvalue("proxyPort") or "80", 
+            
             ssh = {
                 host = http.formvalue("ssh_host") or "",
-                port = tonumber(http.formvalue("ssh_port")) or 22,
+                -- port kekal sebagai nombor (integer)
+                port = tonumber(http.formvalue("ssh_port")) or 22, 
                 username = http.formvalue("ssh_username") or "",
                 password = http.formvalue("ssh_password") or ""
             },
             httpPayload = http.formvalue("httpPayload") or "",
+            -- connectionTimeout kekal sebagai nombor (integer)
             connectionTimeout = tonumber(http.formvalue("connectionTimeout")) or 30
         }
-
+        
+        -- ⭐ PERUBAHAN KRITIKAL: Guna json.stringify(newcfg) tanpa parameter 'true'
+        -- Ini menghasilkan JSON yang dirapatkan (minified) tanpa indentation/spacing
+        -- yang menyebabkan masalah dengan binari Go.
         fs.writefile(config_path, json.stringify(newcfg))
-        cfg = newcfg
+        
+        cfg = newcfg -- Update cfg untuk paparan borang seterusnya
         message = "✅ Konfigurasi disimpan ke /root/config.json"
-
-    elseif action == "start" then
-        -- Mulakan semula servis
+        
+    elseif http.formvalue("action") == "start" then
+        -- Mulakan/Restart perkhidmatan sshws
         sys.call("/etc/init.d/run restart >/dev/null 2>&1 &")
-        luci.sys.exec("sleep 2") -- beri masa servis untuk mula
-
-        -- Semak proses
-        local pid = luci.sys.exec("pgrep -f sshws")
-        if pid and pid ~= "" then
-            -- Tambahan: semak sambungan TCP
-            local host = cfg.ssh.host or "127.0.0.1"
-            local port = cfg.ssh.port or 22
-            local s = socket.connect(host, port)
-
-            if s then
-                s:close()
-                message = string.format("🟢 SSHWS tersambung ke %s:%d", host, port)
-            else
-                message = string.format("🟠 SSHWS berjalan tetapi gagal sambung ke %s:%d", host, port)
-            end
-        else
-            message = "🔴 SSHWS gagal dimulakan"
-        end
-
-    elseif action == "stop" then
+        message = "🟢 SSHWS dimulakan"
+        #bolehkh tambahkan fitur message Conected setelah start sshws
+    elseif http.formvalue("action") == "stop" then
+        -- Hentikan perkhidmatan sshws
         sys.call("/etc/init.d/run stop >/dev/null 2>&1 &")
         message = "🔴 SSHWS dihentikan"
     end
 
+    -- Paparkan borang konfigurasi
     luci.template.render("sshws", { cfg = cfg, message = message })
 end

@@ -1,3 +1,10 @@
+module("luci.controller.sshws", package.seeall)
+
+function index()
+    -- Daftarkan entri menu di bawah 'Services'
+    entry({"admin", "services", "sshws"}, call("action_sshws"), _("SSHWS Tunnel"), 100).leaf = true
+end
+
 function action_sshws()
     local fs = require "nixio.fs"
     local json = require "luci.jsonc"

@@ -1,0 +1,129 @@
+#!/bin/sh
+#Flow download semua fail
+#chmod skrip, bin
+#setup interface tun0, firewall
+
+echo "Welcome to Simple SSHWS by @stdstrx"
+echo "Luci"ed" by @Raducksijaa"
+
+echo "Downloading sshws"
+#1. Download fail dan skrip
+wget -O /usr/bin/sshws \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/bin/sshws >/dev/null 2>&1
+
+wget -O /etc/init.d/sshws \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/sshws >/dev/null 2>&1
+
+wget -O /etc/init.d/sshws-wrapper \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/sshws-wrapper >/dev/null 2>&1
+
+wget -O /usr/lib/lua/luci/controller/sshws.lua \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/sshws.lua >/dev/null 2>&1
+
+wget -O /usr/lib/lua/luci/view/sshws.htm \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/sshws.htm >/dev/null 2>&1
+
+wget -O /usr/bin/wanip \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/wanip >/dev/null 2>&1
+
+
+echo "downloading Preset Payload si Mxs Exp"
+wget -O /root/config.json \
+https://raw.githubusercontent.com/Razifadm/radu/ipk/strx/config.json >/dev/null 2>&1
+
+echo "Setup SSHWS binary"
+
+#Permission skrip
+chmod +x /etc/init.d/sshws
+chmod +x /etc/init.d/sshws-wrapper
+chmod +x /usr/bin/sshws
+chmod +x /usr/bin/wanip
+
+#enable services
+/etc/init.d/sshws enable
+/etc/init.d/sshws-wrapper enable
+/etc/init.d/sshws start
+/etc/init.d/sshws-wrapper start
+
+##########blok tambah watch dog#############
+cat > /bin/sshwsmon <<'EOF'
+#!/bin/sh -e
+# SSHWS Connection Watchdog - wanip then sshws restart
+
+URL="http://ifconfig.io"
+INTERVAL=5
+FAIL_LIMIT=3
+fail_count=0
+
+log() {
+    logger -t sshws-watchdog "$@"
+}
+
+is_ipv4() {
+    echo "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+}
+
+while true; do
+    IP="$(curl -4sS --max-time 30 --connect-timeout 30 "$URL" 2>/dev/null | tr -d '\r\n')"
+    if [ -n "$IP" ] && is_ipv4 "$IP"; then
+        if [ "$fail_count" -gt 0 ]; then
+            log "Internet OK: $IP (failure streak reset from $fail_count)"
+            fail_count=0
+        else
+            log "Internet OK: $IP"
+        fi
+    else
+        fail_count=$((fail_count + 1))
+        if [ "$fail_count" -lt "$FAIL_LIMIT" ]; then
+            log "No public IP (streak $fail_count/$FAIL_LIMIT); waiting..."
+        else
+            log "No public IP (streak $fail_count/$FAIL_LIMIT); attempting WAN refresh then restart sshws"
+
+            if [ -x /usr/bin/wanip ]; then
+                log "Executing /usr/bin/wanip ..."
+                /usr/bin/wanip || log "Warning: /usr/bin/wanip returned non-zero exit status"
+                sleep 3
+            else
+                log "Warning: /usr/bin/wanip not found or not executable; skipping WAN refresh"
+            fi
+
+            log "Restarting sshws service"
+/etc/init.d/sshws restart || log "Warning: /etc/init.d/sshws restart returned non-zero exit status"
+
+            sleep 15
+            fail_count=0
+        fi
+    fi
+    sleep "$INTERVAL"
+done
+EOF
+
+chmod +x /bin/sshwsmon
+
+echo "Finalizing interface setup"
+#Setup Interface tun0
+uci set network.sshws='interface'
+uci set network.sshws.proto='none'
+uci set network.sshws.ifname='tun0'
+uci commit network >/dev/null 2>&1
+
+#firewall setup
+uci set firewall.VPN=zone
+uci set firewall.VPN.name='VPN'
+uci set firewall.VPN.network='sshws'
+uci set firewall.VPN.input='REJECT'   
+uci set firewall.VPN.forward='REJECT' 
+uci set firewall.VPN.output='ACCEPT' 
+uci set firewall.VPN.masq='1'
+uci set firewall.VPN.mtu_fix='1'
+uci add firewall forwarding
+uci set firewall.@forwarding[-1].src='lan'
+uci set firewall.@forwarding[-1].dest='VPN'
+uci commit firewall >/dev/null 2>&1
+
+echo "Installation Done- Welcome to SSH World"
+/etc/init.d/firewall reload >/dev/null 2>&1
+
+rm -f "$0"
+
+

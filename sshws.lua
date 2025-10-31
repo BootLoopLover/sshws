@@ -1,4 +1,4 @@
-module("luci.controller.run", package.seeall)
+module("luci.controller.sshws", package.seeall)
 
 function index()
     -- Daftarkan entri menu di bawah 'Services'
@@ -15,66 +15,90 @@ function action_sshws()
     local cfg = {}
     local message = nil
 
-    -- Baca konfigurasi semasa dari config.json
+    -- 1. Ambil mesej status dari URL (untuk PRG)
+    local status_msg = http.formvalue("msg")
+    if status_msg == "start_ok" then
+        message = "🟢 SSHWS Started."
+    elseif status_msg == "stop_ok" then
+        message = "🔴 SSHWS Stopped."
+    elseif status_msg == "save_ok" then
+        message = "✅ Config Saved to /root/config.json"
+    end
+
+    -- 2. Baca konfigurasi semasa dari config.json
     if fs.access(config_path) then
         local content = fs.readfile(config_path)
         if content and content ~= "" then
-            -- Cuba parse JSON. Guna jsonc.parse yang lebih toleran jika ada komen.
             cfg = json.parse(content) or {}
         end
     end
     
-    -- Pastikan struktur SSH wujud untuk mengelakkan ralat jika cfg kosong
+    -- Pastikan struktur SSH wujud
     if not cfg.ssh then
         cfg.ssh = {}
     end
+    
+    -- 3. Dapatkan WAN IP dan ISP dari curl-ip.guide
+    local cmd = "curl -s 'https://ip.guide?format=json'"
+    local raw_data = sys.exec(cmd)
+    
+    local success, data = pcall(json.parse, raw_data)
 
-    -- Mengendalikan tindakan butang
+    if success and type(data) == "table" then
+        cfg.wan_ip = data.ip or "N/A"
+        
+        if data.network and data.network.autonomous_system then
+            cfg.isp_name = data.network.autonomous_system.organization or "N/A"
+        else
+            cfg.isp_name = "N/A (Check network)"
+        end
+    else
+        cfg.wan_ip = "Failed to fetch/parse IP."
+        cfg.isp_name = "Check connectivity/libraries."
+    end
+    
+    -- 4. Mengendalikan tindakan butang (POST)
     if http.formvalue("action") == "reload" then
-        -- Muat semula halaman
-        http.redirect(luci.dispatcher.build_url("admin/services/run"))
+        http.redirect(luci.dispatcher.build_url("admin/services/sshws"))
         return
         
     elseif http.formvalue("action") == "save" then
-        -- Update JSON fields dari form (borang)
         local newcfg = {
             mode = http.formvalue("mode") or "proxy",
             proxyHost = http.formvalue("proxyHost") or "",
-            
-            -- PENTING: Kekalkan proxyPort sebagai STRING ("80")
             proxyPort = http.formvalue("proxyPort") or "80", 
             
             ssh = {
                 host = http.formvalue("ssh_host") or "",
-                -- port kekal sebagai nombor (integer)
                 port = tonumber(http.formvalue("ssh_port")) or 22, 
                 username = http.formvalue("ssh_username") or "",
                 password = http.formvalue("ssh_password") or ""
             },
             httpPayload = http.formvalue("httpPayload") or "",
-            -- connectionTimeout kekal sebagai nombor (integer)
             connectionTimeout = tonumber(http.formvalue("connectionTimeout")) or 30
         }
         
-        -- ⭐ PERUBAHAN KRITIKAL: Guna json.stringify(newcfg) tanpa parameter 'true'
-        -- Ini menghasilkan JSON yang dirapatkan (minified) tanpa indentation/spacing
-        -- yang menyebabkan masalah dengan binari Go.
         fs.writefile(config_path, json.stringify(newcfg))
         
-        cfg = newcfg -- Update cfg untuk paparan borang seterusnya
-        message = "✅ Konfigurasi disimpan ke /root/config.json"
+        -- ⭐ PRG: Redirect ke URL dengan mesej status
+        http.redirect(luci.dispatcher.build_url("admin/services/sshws") .. "?msg=save_ok")
+        return
         
     elseif http.formvalue("action") == "start" then
-        -- Mulakan/Restart perkhidmatan sshws
         sys.call("/etc/init.d/run restart >/dev/null 2>&1 &")
-        message = "🟢 SSHWS dimulakan"
-        #bolehkh tambahkan fitur message Conected setelah start sshws
+        
+        -- ⭐ PRG: Redirect ke URL dengan mesej status
+        http.redirect(luci.dispatcher.build_url("admin/services/sshws") .. "?msg=start_ok")
+        return
+        
     elseif http.formvalue("action") == "stop" then
-        -- Hentikan perkhidmatan sshws
-        sys.call("/etc/init.d/run stop >/dev/null 2>&1 &")
-        message = "🔴 SSHWS dihentikan"
+        sys.call("/etc/init.d/sshws stop >/dev/null 2>&1 &")
+        
+        -- ⭐ PRG: Redirect ke URL dengan mesej status
+        http.redirect(luci.dispatcher.build_url("admin/services/sshws") .. "?msg=stop_ok")
+        return
     end
 
-    -- Paparkan borang konfigurasi
+    -- 5. Paparkan borang konfigurasi
     luci.template.render("sshws", { cfg = cfg, message = message })
 end

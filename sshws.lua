@@ -1,4 +1,4 @@
-module("luci.controller.run", package.seeall)
+module("luci.controller.sshws", package.seeall)
 
 function index()
     -- Daftarkan entri menu di bawah 'Services'

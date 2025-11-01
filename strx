@@ -4,8 +4,8 @@
 #setup interface tun0, firewall
 
 echo "Welcome to Simple SSHWS by @stdstrx"
-echo "Lucied" by @Raducksijaa"
-echo "Tested" by @Pakalolowaras0"
+echo "Lucied by @Raducksijaa"
+echo "Tested by @Pakalolowaras0"
 
 
 echo "Downloading sshws"

@@ -9,7 +9,7 @@ echo " Tested by Paka"
 echo "======================================="
 
 echo "[1/5] Downloading SSHWS files..."
-wget -O /usr/bin/run https://github.com/BootLoopLover/sshws/blob/sshws/usr/bin/sshws >/dev/null 2>&1
+wget -O /usr/bin/sshws https://github.com/BootLoopLover/sshws/blob/sshws/usr/bin/sshws >/dev/null 2>&1
 wget -O /etc/init.d/run https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/run >/dev/null 2>&1
 wget -O /usr/lib/lua/luci/controller/sshws.lua https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/sshws.lua >/dev/null 2>&1
 wget -O /usr/lib/lua/luci/view/sshws.htm https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/sshws.htm >/dev/null 2>&1

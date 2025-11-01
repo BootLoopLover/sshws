@@ -9,14 +9,14 @@ echo " Tested by Paka"
 echo "======================================="
 
 echo "[1/5] Downloading SSHWS files..."
-wget -O /usr/bin/run https://github.com/BootLoopLover/sshws/blob/sshws/usr/bin/run >/dev/null 2>&1
+wget -O /usr/bin/run https://github.com/BootLoopLover/sshws/blob/sshws/usr/bin/sshws >/dev/null 2>&1
 wget -O /etc/init.d/run https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/run >/dev/null 2>&1
 wget -O /usr/lib/lua/luci/controller/sshws.lua https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/sshws.lua >/dev/null 2>&1
 wget -O /usr/lib/lua/luci/view/sshws.htm https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/sshws.htm >/dev/null 2>&1
 wget -O /usr/bin/wanip https://raw.githubusercontent.com/BootLoopLover/sshws/refs/heads/sshws/wanip >/dev/null 2>&1
 
 echo "[2/5] Setting up permissions..."
-chmod +x /etc/init.d/run /usr/bin/run /usr/bin/wanip
+chmod +x /etc/init.d/run /usr/bin/sshws /usr/bin/wanip
 
 echo "[3/5] Enabling SSHWS service..."
 /etc/init.d/run enable
